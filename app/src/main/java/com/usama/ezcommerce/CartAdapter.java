@@ -16,34 +16,10 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
     public ArrayList<CartData> cartdata;
     private Context context;
 
+
     public CartAdapter(Context context, ArrayList<CartData> cartdata) {
         this.context = context;
         this.cartdata = cartdata;
-    }
-
-    public int convertString(String str){
-        char[] ch = str.toCharArray();
-        int len = ch.length;
-
-        char[] arr = new char[len-1];
-        for(int i=0; i<(len-1); i++){
-           arr[i] = ch[i+1];
-        }
-
-        //Log.d("this", String.valueOf(arr));
-        int price = Integer.parseInt(String.valueOf(arr));
-        return price;
-    }
-
-    public int getTotal(){
-        int total = 0, price;
-        String str;
-        for(int i=0 ; i<MainActivity.cart.size() ; i++){
-            str = MainActivity.cart.get(i).getPrice();
-            price = convertString(str);
-            total = total + (price * MainActivity.cart.get(i).getQuantity());
-        }
-        return total;
     }
 
 
@@ -53,8 +29,9 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
         LayoutInflater layoutInflater = LayoutInflater.from(parent.getContext());
         View listItem = layoutInflater.inflate(R.layout.cart_item, parent, false);
         ViewHolder viewHolder = new ViewHolder(listItem);
-        return viewHolder;
+       return viewHolder;
     }
+
 
     //// putting values into that views (binding data with its view) //////
     @Override
@@ -64,6 +41,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
         holder.getProductNameView().setText(mycartData.getProductname());
         holder.getPriceView().setText(mycartData.getPrice());
         holder.getQuantityView().setText(String.valueOf((mycartData.getQuantity())));
+
     }
 
     @Override
@@ -78,6 +56,7 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
         public TextView productNameView, priceView, quantityView;
         Button addButtonView, subButtonView, deleteView;
         public CardView cardView;
+        CartDB doa;
 
         public ViewHolder(View itemView) {
             super(itemView);
@@ -90,23 +69,32 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
             this.deleteView = (Button) itemView.findViewById(R.id.button2);
             cardView = (CardView) itemView.findViewById(R.id.cardView);
 
+            doa = new CartDB(context.getApplicationContext());
 
             //// defining action-listeners on buttons ////
             addButtonView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+
+                    //// 1): Update quantity on screen  ////
                     String srequantity = quantityView.getText().toString();
                     int quantity = Integer.parseInt(srequantity);
                     quantity++;
                     srequantity = String.valueOf(quantity);
                     quantityView.setText(srequantity);
 
-                    int index = getAdapterPosition();           //// item index for which '+' button is clicked ////
-                    MainActivity.cart.get(index).setQuantity(quantity);   /// add to updated value in arrayList also  ////
 
+                    //// 2): Update quantity in database  ////
+                    int index = getAdapterPosition();                //// item index for which '+' button is clicked ////
+                    CartData item = cartdata.get(index);
+                    int imgID = item.getImgId();
+                    String itemName = item.getProductname();
+                    String price = item.getPrice();
+                    CartData newObj = new CartData(imgID, itemName, price, quantity);
+                    doa.IncreaseQuantity(newObj);
 
-                    //// update total price ////
-                    int total_amount = getTotal();
+//                  //// 3): Update total price ////
+                    int total_amount = doa.getPrice();
                     Page3.textView.setText(String.valueOf(total_amount));
                 }
             });
@@ -118,19 +106,29 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
                 public void onClick(View view) {
                     String srequantity = quantityView.getText().toString();
                     int quantity = Integer.parseInt(srequantity);
+
                     if(quantity > 1) {
+
+                        //// 1): Update quantity on screen  ////
                         quantity--;
                         srequantity = String.valueOf(quantity);
                         quantityView.setText(srequantity);
 
+
+                        //// 2): Update quantity in database  ////
                         int index = getAdapterPosition();           //// item index for which '-' button is clicked ////
-                        MainActivity.cart.get(index).setQuantity(quantity);   /// add to updated value in arrayList also  ////
+                        CartData item = cartdata.get(index);
+                        int imgID = item.getImgId();
+                        String itemName = item.getProductname();
+                        String price = item.getPrice();
+                        CartData newObj = new CartData(imgID, itemName, price, quantity);
+                        doa.DecreaseQuantity(newObj);
 
-
-                        //// update total price ////
-                        int total_amount = getTotal();
+                        //// 3): Update total price ////
+                        int total_amount = doa.getPrice();
                         Page3.textView.setText(String.valueOf(total_amount));
                     }
+
                 }
             });
 
@@ -139,18 +137,25 @@ public class CartAdapter extends RecyclerView.Adapter<CartAdapter.ViewHolder> {
             deleteView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
+
+
                     int index = getAdapterPosition();           //// item index for which button is clicked ////
-                    MainActivity.cart.remove(index);                   //// only removes item from arraylist  ///
-                    notifyItemRemoved(index);                          //// also update recyclerView ////
-                    notifyItemRangeChanged(index, MainActivity.cart.size());
+                    CartData item = cartdata.get(index);
+                    String itemName = item.getProductname();
+                    doa.deleteCartItem(itemName);              /// remove item from database ///
+
+                    cartdata.remove(index);                   /// remove that item from arrayList ///
+                    notifyItemRemoved(index);                 /// also update recyclerView ////
+                    notifyItemRangeChanged(index, doa.countCartItems());
 
 
-                    //// update total price ////
-                    int total_amount = getTotal();
+                    //// 3): Update total price ////
+                    int total_amount = doa.getPrice();
                     Page3.textView.setText(String.valueOf(total_amount));
                 }
             });
         }
+
 
         public ImageView getImageView() {
             return imageView;

@@ -8,17 +8,18 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.widget.EditText;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     EditText editText;
     ArrayList<ProductData> Data = new ArrayList<>();
-    public static ArrayList<CartData> cart = new ArrayList<>();
     ProductAdapter adapter;
-
+    ProductDB doa;
 
     private void filter(String text){
         ArrayList<ProductData> filteredData = new ArrayList<>();  ///// initialize empty list every time after search /////
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        doa = new ProductDB(MainActivity.this);
         editText = (EditText) findViewById(R.id.Editsearch);
         editText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -64,6 +65,13 @@ public class MainActivity extends AppCompatActivity {
         Data.add(new ProductData(R.drawable.bag, "Bag", 3.5f, "$300"));
         Data.add(new ProductData(R.drawable.laptop, "Laptop", 3.5f, "$500"));
 
+        //// save this arrayList in Database (send it to business layer [ProductData.java] ) //////
+        ProductData dataobj = new ProductData(doa);
+        dataobj.saveToDB(Data);
+
+        //// receive array from business Layer ////
+        ArrayList<ProductData> DBProducts = dataobj.load();
+
         // setting recyclerview
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
         recyclerView.setHasFixedSize(true);
@@ -73,8 +81,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
 
 
-        adapter = new ProductAdapter(MainActivity.this, Data);
-        //RecyclerView.Adapter mAdapter = adapter;
+        adapter = new ProductAdapter(MainActivity.this, DBProducts);
         recyclerView.addItemDecoration(new DividerItemDecoration(this, LinearLayoutManager.VERTICAL));
         recyclerView.setAdapter(adapter);
     }

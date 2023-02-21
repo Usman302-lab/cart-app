@@ -6,14 +6,19 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+
 
 public class Page3 extends AppCompatActivity {
     public static  TextView textView;
+    CartDB doa;
+    ArrayList<CartData> cart;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,18 +52,25 @@ public class Page3 extends AppCompatActivity {
         int imgID = intent.getIntExtra("UniqueImage1", 0);
 
 
-        //// a check in cart (if item already in cart, then only increase in its quantity) ////
-        boolean exists = findItemInCart(item);
-        if(!exists) {
-            MainActivity.cart.add(new CartData(imgID, item, price, 1));
-        }
-        else{
-            int Itemindex = findItemIndex(item);
-            if (Itemindex != -1)
-                MainActivity.cart.get(Itemindex).incrementQuantity();
+        doa = new CartDB(this);
 
-        }
+        CartData ITEM = new CartData(imgID, item, price, 1);
 
+        CartData cartitem = new CartData(doa);
+        cartitem.saveCartItemToDB(ITEM);
+
+
+        //// receive array from business Layer ////
+        cart = cartitem.loadCart();
+
+        populateItems(cart);
+
+        textView.setText(String.valueOf(cartitem.getCartPrice()));              //// set total price ////
+    }
+
+
+
+    public void populateItems(ArrayList<CartData> cart){
 
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recyclerView2);
         recyclerView.setHasFixedSize(true);
@@ -68,30 +80,10 @@ public class Page3 extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
 
 
-        CartAdapter adapter = new CartAdapter(Page3.this, MainActivity.cart);
+        CartAdapter adapter = new CartAdapter(Page3.this, cart);
         recyclerView.addItemDecoration(new DividerItemDecoration(this, LinearLayoutManager.VERTICAL));
         recyclerView.setAdapter(adapter);
 
-        textView.setText(String.valueOf(adapter.getTotal()));              //// set total price ////
     }
 
-    public boolean findItemInCart(String item){
-        for(CartData cart : MainActivity.cart) {
-            if (cart.getProductname().equals(item))
-                return true;
-        }
-        return false;
-    }
-
-    public int findItemIndex(String item){
-        int i = 0;
-        boolean flag = false;
-        for(CartData cart : MainActivity.cart) {
-            if (cart.getProductname().equals(item))
-                return i;
-            else
-                i++;
-        }
-        return -1;
-    }
 }
